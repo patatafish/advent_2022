@@ -1,34 +1,36 @@
+import pygame as pg
 from shared_use import read_file
 
 
-def process(my_data):
+def process(my_data, part2_flag=0):
     total = 0
 
     for line in my_data:
         score = 0
         [opp, me] = line.split(' ')
 
-        if me == 'X':
-            if opp == 'A':
-                me = 'Z'
-            if opp == 'B':
-                me = 'X'
-            if opp == 'C':
-                me = 'Y'
-        elif me == 'Y':
-            if opp == 'A':
-                me = 'X'
-            if opp == 'B':
-                me = 'Y'
-            if opp == 'C':
-                me = 'Z'
-        else:
-            if opp == 'A':
-                me = 'Y'
-            if opp == 'B':
-                me = 'Z'
-            if opp == 'C':
-                me = 'X'
+        if part2_flag:
+            if me == 'X':
+                if opp == 'A':
+                    me = 'Z'
+                if opp == 'B':
+                    me = 'X'
+                if opp == 'C':
+                    me = 'Y'
+            elif me == 'Y':
+                if opp == 'A':
+                    me = 'X'
+                if opp == 'B':
+                    me = 'Y'
+                if opp == 'C':
+                    me = 'Z'
+            else:
+                if opp == 'A':
+                    me = 'Y'
+                if opp == 'B':
+                    me = 'Z'
+                if opp == 'C':
+                    me = 'X'
 
         if me == 'X':
             score += 1
@@ -55,12 +57,14 @@ def process(my_data):
     return total
 
 
-
 def main():
     raw_data = read_file('d02', 'l')
     print(raw_data)
     clean = process(raw_data)
     print(clean)
+    clean = process(raw_data, 1)
+    print(clean)
+
 
 
 
@@ -68,3 +72,6 @@ def main():
 if __name__ == '__main__':
     print('Running day 2 directly.')
     main()
+
+    print('Starting pygame...')
+    main_loop()

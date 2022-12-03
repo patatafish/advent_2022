@@ -38,7 +38,7 @@ def game_loop(my_data):
     screen.blit(background, (0, 0))
     pg.display.flip()
 
-    elf = pygame.image.load('IMG/d01/elf.png').convert_alpha()
+    elf = pygame.image.load('IMG/common/elf.png').convert_alpha()
     elf = pygame.transform.smoothscale(elf, (200, 200))
     elf_rect = elf.get_rect()
     start_rect = (-200, 500)
@@ -155,6 +155,8 @@ def game_loop(my_data):
 
 def main():
     raw_data = read_file('d01', 'l')
+    if raw_data[-1]:
+        raw_data.append('')
 
     print(raw_data)
 
