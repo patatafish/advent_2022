@@ -1,3 +1,4 @@
+import pygame
 import pygame as pg
 from shared_use import read_file
 
@@ -66,7 +67,16 @@ def main():
     print(clean)
 
 
+def main_loop():
 
+    # main init sequence for pygame
+    pg.init()
+    clock = pg.time.Clock()
+
+    # define basic window
+    window_size = window_width, window_height = 1000, 1000
+    screen = pg.display.set_mode(window_size)
+    
 
 
 if __name__ == '__main__':
