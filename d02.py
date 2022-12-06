@@ -1,12 +1,12 @@
 import sys
 import random
+import time
 import pygame as pg
 from shared_use import read_file
 
 
 # create an image cache for quick loading
 image_cache = {}
-
 
 def get_img(key):
     # load image, will not attempt re-load if already in memory
@@ -45,11 +45,29 @@ class Elf(pg.sprite.Sprite):
         self.enter = False  # to control walk-up
         self.newborn = True  # for positioning pre-walk-up
         self.my_choice = None  # our choice in game (rock, paper, scissors)
+        self.defeat = False  # flag to see if i've been defeated
+        self.x_retreat = random.randrange(-10, 10)
+        # to avoid movement of (0, 0), make sure at least x is moving
+        if not self.x_retreat:
+            self.x_retreat = 10
+        self.y_retreat = random.randrange(-10, 10)
+        # global value of screen
+        self.screen = pg.display.get_surface()
+
+    def beat(self):
+        self.defeat = True
 
     def update(self):
         # if we are initializing, show walk-up
         if self.enter:
             self.walk_up()
+
+        if self.defeat:
+            self.rect = self.rect.move(self.x_retreat, self.y_retreat)
+            if not self.rect.colliderect(self.screen.get_rect()):
+                print('exited!')
+                self.kill()
+
 
     def choose(self):
         # init new random seed
@@ -88,7 +106,7 @@ class Elf(pg.sprite.Sprite):
 
 class Rock(pg.sprite.Sprite):
 
-    def __init__(self, size=(250, 250), pos=(100, 100), rot=0):
+    def __init__(self, size=(250, 250), pos=(100, 100), rot=0, ttl=None):
         pg.sprite.Sprite.__init__(self)
         self.image = get_img('IMG/d02/rock.webp')
         self.image.convert_alpha()
@@ -97,10 +115,19 @@ class Rock(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
+        self.ttl = ttl
+        self.bday = time.time()
+
+    def update(self):
+        # check to see if I should self-destruct
+        if self.ttl:
+            if time.time() > self.bday + self.ttl:
+                self.kill()
+
 
 class Paper(pg.sprite.Sprite):
 
-    def __init__(self, size=(250, 250), pos=(100, 100), rot=0):
+    def __init__(self, size=(250, 250), pos=(100, 100), rot=0, ttl=None):
         pg.sprite.Sprite.__init__(self)
         self.image = get_img('IMG/d02/paper.png')
         self.image.convert_alpha()
@@ -109,10 +136,19 @@ class Paper(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
+        self.ttl = ttl
+        self.bday = time.time()
+
+    def update(self):
+        # check to see if I should self-destruct
+        if self.ttl:
+            if time.time() > self.bday + self.ttl:
+                self.kill()
+
 
 class Scissors(pg.sprite.Sprite):
 
-    def __init__(self, size=(250, 250), pos=(100, 100), rot=0):
+    def __init__(self, size=(250, 250), pos=(100, 100), rot=0, ttl=None):
         pg.sprite.Sprite.__init__(self)
         self.image = get_img('IMG/d02/scissor.webp')
         self.image.convert_alpha()
@@ -120,6 +156,53 @@ class Scissors(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.image, rot)
         self.rect = self.image.get_rect()
         self.rect.center = pos
+
+        self.ttl = ttl
+        self.bday = time.time()
+
+    def update(self):
+        # check to see if I should self-destruct
+        if self.ttl:
+            if time.time() > self.bday + self.ttl:
+                self.kill()
+
+
+class Explode(pg.sprite.Sprite):
+
+    def __init__(self):
+        pg.sprite.Sprite.__init__(self)
+        # random size and orientation
+        dsize = random.randrange(-25, 25)
+        my_size = (100+dsize, 100+dsize)
+
+        self.image = get_img('IMG/d02/bang.png')
+        self.image.convert_alpha()
+        self.image = pg.transform.scale(self.image, my_size)
+        self.rect = self.image.get_rect()
+
+        # time to live variables
+        self.ttl = 3 + random.randrange(-2, 3)
+        self.bday = time.time()
+
+        # for animating rock motion
+        self.rocking = -2
+        self.orient = 0
+
+    def update(self):
+        if time.time() > self.bday + self.ttl:
+            self.kill()
+
+        old_rect = self.image.get_rect()
+        rot_img = pg.transform.rotate(self.image, self.rocking)
+        rot_rect = old_rect.copy()
+        rot_rect.center = rot_img.get_rect().center
+        rot_img = rot_img.subsurface(rot_rect).copy()
+
+        self.image = rot_img.copy()
+
+        self.orient += self.rocking
+        if abs(self.orient) == 30:
+            self.rocking *= -1
 
 
 def process(my_data, part2_flag=0):
@@ -190,10 +273,12 @@ def main_loop():
 
     # main init sequence for pygame
     pg.init()
+    pg.mixer.init()
     clock = pg.time.Clock()
 
     # define basic window
     window_size = window_width, window_height = 1000, 1000
+    # define the screen globally, this is so classes can reference it
     screen = pg.display.set_mode(window_size)
 
     # set background screen
@@ -214,6 +299,7 @@ def main_loop():
     player_group = pg.sprite.RenderUpdates()
     enemy_group = pg.sprite.RenderUpdates()
     button_group = pg.sprite.RenderUpdates()
+    choice_group = pg.sprite.Group()
 
     # load sprites
     # player sprite
@@ -234,9 +320,13 @@ def main_loop():
     enemy_group.add(enemy)
     all_sprites.add(player_group, enemy_group)
 
+    buzzer_sound = pg.mixer.Sound('AUD/d02/buzzer.mp3')
+    buzzer_sound.set_volume(.3)
+    ding_sound = pg.mixer.Sound('AUD/d02/ding.wav')
+    ding_sound.set_volume(.3)
+
     # loop and game control variables
     running = True  # game loop control flag
-    new_enemy = False    # spawn a new enemy?
     click_list = []     # event list on mouse click
 
     # clear screen for game loop animation
@@ -247,16 +337,8 @@ def main_loop():
         # begin each loop by placing down background
         screen.blit(background, (0, 0))
 
-        # main loop, check for quit signal
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                running = False
-                continue
-            if event.type == pg.MOUSEBUTTONUP:
-                click_list = [s for s in button_group if s.rect.collidepoint(event.pos)]
-
         # if enemy needed, create it
-        if new_enemy:
+        if not enemy_group.has(enemy):
             print('Creating new enemy')
             # load enemy sprites
             enemy = Elf(True)
@@ -265,12 +347,19 @@ def main_loop():
             # add to groups
             all_sprites.add(enemy)
             enemy_group.add(enemy)
-            # change flag, we have an enemy
-            new_enemy = False
 
         # if both player present, start game
-        if not enemy.enter:
-            # reset previous choice, if any
+        if not enemy.defeat:
+
+            # main loop, check for quit signal
+            # only accept input if enemy present
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    running = False
+                    continue
+                if event.type == pg.MOUSEBUTTONUP:
+                    click_list = [s for s in button_group if s.rect.collidepoint(event.pos)]
+
             player_choice = None
             all_sprites.add(button_group)
 
@@ -285,38 +374,76 @@ def main_loop():
 
             # if the player made a choice, ask the computer to choose
             if player_choice:
-                computer_choice = enemy.choose()
+                # check to clear any previous moves from render groups
+                if len(choice_group):
+                    for item in choice_group:
+                        item.kill()
 
-                print(player_choice, computer_choice)
+                lose = False
+                computer_choice = enemy.choose()
 
                 # after the computer chooses, show the play
                 # where play icons will be centered
-                p1_choice_pos = (475, 650)
-                p2_choice_pos = (525, 650)
+                p1_choice_pos = (450, 625)
+                p2_choice_pos = (550, 625)
                 choice_size = (100, 100)
                 choice_rot = 30
                 # define player icons
                 if player_choice == 'rock':
-                    p1_icon = Rock(choice_size, p1_choice_pos, choice_rot)
+                    p1_icon = Rock(choice_size, p1_choice_pos, choice_rot, 3)
                 elif player_choice == 'paper':
-                    p1_icon = Paper(choice_size, p1_choice_pos, choice_rot)
+                    p1_icon = Paper(choice_size, p1_choice_pos, choice_rot, 3)
                 else:
-                    p1_icon = Scissors(choice_size, p1_choice_pos, choice_rot)
+                    p1_icon = Scissors(choice_size, p1_choice_pos, choice_rot, 3)
                 if computer_choice == 'rock':
-                    p2_icon = Rock(choice_size, p2_choice_pos, -choice_rot)
-                elif player_choice == 'paper':
-                    p2_icon = Paper(choice_size, p2_choice_pos, -choice_rot)
+                    p2_icon = Rock(choice_size, p2_choice_pos, -choice_rot, 3)
+                elif computer_choice == 'paper':
+                    p2_icon = Paper(choice_size, p2_choice_pos, -choice_rot, 3)
                 else:
-                    p2_icon = Scissors(choice_size, p2_choice_pos, -choice_rot)
+                    p2_icon = Scissors(choice_size, p2_choice_pos, -choice_rot, 3)
 
+                # update the sprite groups with the played items
+                choice_group.add(p1_icon, p2_icon)
                 player_group.add(p1_icon)
                 enemy_group.add(p2_icon)
-                all_sprites.add(player_group, enemy_group)
+                all_sprites.add(p1_icon, p2_icon)
+
+                # check for AI defeat
+                if player_choice == 'rock' and computer_choice == 'scissors':
+                    enemy.defeat = True
+                elif player_choice == 'paper' and computer_choice == 'rock':
+                    enemy.defeat = True
+                elif player_choice == 'scissors' and computer_choice == 'paper':
+                    enemy.defeat = True
+
+                # check for player defeat
+                elif computer_choice == 'rock' and player_choice == 'scissors':
+                    lose = True
+                elif computer_choice == 'paper' and player_choice == 'rock':
+                    lose = True
+                elif computer_choice == 'scissors' and player_choice == 'paper':
+                    lose = True
+
+
+                # play sound if relevant
+                if lose:
+                    buzzer_sound.play()
+                if enemy.defeat:
+                    ding_sound.play()
+
+                # show hits if defeated
+                if lose:
+                    for hits in range(8):
+                        x_offset = random.randrange(-50, 50)
+                        y_offset = random.randrange(-50, 50)
+                        this_explosion = (player.rect.centerx + x_offset, player.rect.centery + y_offset)
+                        new_explosion = Explode()
+                        new_explosion.rect.center = this_explosion
+                        choice_group.add(new_explosion)
+                        all_sprites.add(new_explosion)
 
         # update sprite groups
         all_sprites.update()
-        # player_group.update()
-        # enemy_group.update()
 
         # render
         all_sprites.clear(screen, background)
