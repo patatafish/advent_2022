@@ -16,36 +16,36 @@ class FileSystem:
 
     functions:
     cd(self, str())
-        changes self.current to a new subdirectory named in the str().
+        changes FileSystem.current to a new subdirectory named in the str().
         this function will create a new Directory() item with FileSystem.mkdir() if the string passed is not
         already a subdirectory of the current directory before changing self.current.
 
         no return type
 
     mkdir(self, str())
-        makes a new Directory() object named str() and ties it to it's parent directory
+        makes a new Directory() object named str() and ties it to its parent directory
 
         no return type
 
     ls(self, list(), bool())
         both shows the contents of a directory and populates that directory
         this function needs the console log as a list() to create the items in each Directory() object
-        it uses list.pop() and will remove items from the log as it moves across them. This funtion uses
-        FileSustem.mkdir() and will append current.files if it finds new data, If the bool() is True
+        it uses list.pop() and will remove items from the log as it moves across them. This function uses
+        FileSystem.mkdir() and will append FileSystem.files if it finds new data, If the bool() is True
         then the function will end by printing the content of the directory to the console
 
         no return type
 
     expand(self, Directory(), int())
         recursive function
-        this file shows an organized file system on the console, will also define FileSustem.on_disk and
+        this file shows an organized file system on the console, will also define FileSystem.on_disk and
         FileSystem.free_space when run. The free space is from an assumed 70,000,000 byte disk max.
 
         no return type
 
     mark_for_del(self, list(), Directory())
         recursive function
-        this function loops the FileSustem object from top to identify space requirements for freeing
+        this function loops the FileSystem object from top to identify space requirements for freeing
         disk space.
     """
     def __init__(self):

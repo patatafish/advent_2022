@@ -23,6 +23,12 @@ def flatten(my_list):
 
 # file i/o
 def read_file(filename, read_type='l'):
+    """
+    :param filename: the file to be read, this assumes in directory ../PycharmProjeccts/advent2022/DAT/ :param
+    read_type: how to read the file, default is 'l' - break at newline, ' ' break at empty space, 'c' break between
+    characters
+    :return: list() of data from file
+    """
     # append directory for read
     filename = '/home/mendoncapatrick/PycharmProjects/advent2022/DAT/' + filename
     with open(filename, 'r') as inf:
