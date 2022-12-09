@@ -1,7 +1,8 @@
 from shared_use import read_file
 from shared_use import flatten
 
-class Forest():
+
+class Forest:
 
     def __init__(self, trees):
 
@@ -39,18 +40,18 @@ class Forest():
             for i in range(self.rows):
                 self.seen.append(seen_row.copy())
             # move the forest to a 2-d list
-            new_forest = []
             for i in range(self.rows):
                 self.forest[i] = [x for x in self.forest[i]]
 
-    def show(self):
+    def show(self, seen_flag=True):
         print('\nMap:')
         for row in self.forest:
            print(row)
-        print('Seen Map:')
+        if seen_flag:
+            print('Seen Map:')
 
-        for row in self.seen:
-            print(row)
+            for row in self.seen:
+                print(row)
 
 
     def rotate(self):
@@ -96,160 +97,203 @@ class Forest():
         x_offset = 0
         y_offset = 0
 
-        print(f'considering view from {self.forest[my_y][my_x]} at ({my_y},{my_x})')
-
         # if we are an edge tree, exit with score of 0
         if my_x == 0 or my_y == 0 or my_x == self.cols - 1 or my_y == self.rows - 1:
-            print('Edge tree, 0 score')
+            print('   Edge tree, 0 score')
             return 0
 
-        # look up (we know we can see at least 1 tree, so pre-load)
-        this_view = 1
-        y_offset = -1
-        this_height = int(self.forest[my_y + y_offset][my_x])
-        print(f'above us is {self.forest[my_y + y_offset][my_x]} at {this_height}m')
-        while True:
-            y_offset -= 1
-            if my_y + y_offset >= 0:
-                # if there exists a tree above the current one
-                print(f'looking at {self.forest[my_y + y_offset][my_x]} compared to {this_height}')
-                if int(self.forest[my_y + y_offset][my_x]) >= this_height:
-                    # this tree is taller or equal than ours, so we can see it
-                    # increase the score
-                    this_view += 1
-                    # make this tree the new highest in view
-                    this_height = int(self.forest[my_y + y_offset][my_x])
-                else:
-                    # special case, we are in the distance and we've seen two trees the same height
-                    if int(self.forest[my_y + y_offset][my_x]) == this_height and y_offset < -1:
-                        this_view += 1
-                        print('two equal trees, marking both')
-                    print(f'cannnot see whats behind this tree, score up is {this_view}')
-                    # this tree is NOT in view, sum the score, and exit
-                    view_score *= this_view
-                    break
-            else:
-                # if we've exited the forest
-                print(f'we exited the forest, score up is {this_view}')
-                # sum all our scores and exit
-                view_score *= this_view
-                break
+        show = []
+        for i in range(my_y-5, my_y+5, 1):
+            string = ''
+            for j in range(my_x-5, my_x+5, 1):
+                if i >= 0 and j >= 0:
+                    if i < self.rows and j < self.cols:
+                        if i == my_y or j == my_x:
+                            string += self.forest[i][j]
+                        else:
+                            string += ' '
+            show.append(string)
 
-        # look right
-        this_view = 1
-        x_offset = 1
-        this_height = int(self.forest[my_y][my_x + x_offset])
-        print(f'right of us is {self.forest[my_y][my_x + x_offset]} at {this_height}m')
+        for line in show:
+            print(line)
+
+        print(f'considering view from {self.forest[my_y][my_x]} at ({my_y},{my_x})')
+
+        # look up
+        current_score = 0
+        current_height = int(self.forest[my_y][my_x])
+        y_offset = -1
+        print(f'   up: ', end='')
         while True:
-            x_offset += 1
-            if my_x + x_offset < self.cols:
-                # if there exists a tree to the right of the current one
-                print(f'looking at {self.forest[my_y][my_x + x_offset]} compared to {this_height}')
-                if int(self.forest[my_y][my_x + x_offset]) >= this_height:
-                    # this tree is taller or equal than ours, so we can see it
-                    # increase the score
-                    this_view += 1
-                    # make this tree the new highest in view
-                    this_height = int(self.forest[my_y][my_x + x_offset])
-                else:
-                    # special case, we are in the distance and we've seen two trees the same height
-                    if int(self.forest[my_y][my_x + x_offset]) == this_height and x_offset > 1:
-                        this_view += 1
-                        print('two equal trees, marking both')
-                    print(f'cannnot see whats behind this tree, score up is {this_view}')
-                    # this tree is NOT in view, sum the score, and exit
-                    view_score *= this_view
-                    break
-            else:
-                # if we've exited the forest
-                print(f'we exited the forest, score right is {this_view}')
-                # sum all our scores and exit
-                view_score *= this_view
+            # first check if we've exited the forest
+            if my_y + y_offset < 0:
+                # if we have, total the score and exit
+                print('(x)', end='')
+                view_score *= current_score
                 break
+            print(f'({self.forest[my_y + y_offset][my_x]})', end='')
+            # if the next tree is of equal height to this tree, score 1 and exit
+            if current_height == int(self.forest[my_y + y_offset][my_x]):
+                current_score += 1
+                y_offset -= 1
+                continue
+            # if the next tree is shorter than this tree, exit without scoring ONLY if we are
+            # not at the origin
+            if current_height > int(self.forest[my_y + y_offset][my_x]):
+                # if we are at the origin, score this tree, mark height, and move to next
+                if y_offset == -1:
+                    current_score += 1
+                    # current_height = int(self.forest[my_y + y_offset][my_x])
+                    y_offset -= 1
+                    continue
+                # if we are away from origin, this view is blocked, do not score and exit
+                view_score *= current_score
+                break
+            # if the next tree is taller than this tree, score tree, mark height, and move to next
+            if current_height < int(self.forest[my_y + y_offset][my_x]):
+                current_score += 1
+                current_height = int(self.forest[my_y + y_offset][my_x])
+                y_offset -= 1
+                continue
+        print(f' {current_score}')
 
         # look down
-        this_view = 1
+        current_score = 0
+        current_height = int(self.forest[my_y][my_x])
         y_offset = 1
-        this_height = int(self.forest[my_y + y_offset][my_x])
-        print(f'below us is {self.forest[my_y + y_offset][my_x]} at {this_height}m')
+        print(f'   down: ', end='')
         while True:
-            y_offset += 1
-            if my_y + y_offset < self.rows:
-                # if there exists a tree below the current one
-                print(f'looking at {self.forest[my_y + y_offset][my_x]} compared to {this_height}')
-                if int(self.forest[my_y + y_offset][my_x]) >= this_height:
-                    # this tree is taller or equal than ours, so we can see it
-                    # increase the score
-                    this_view += 1
-                    # make this tree the new highest in view
-                    this_height = int(self.forest[my_y + y_offset][my_x])
-                else:
-                    # special case, we are in the distance and we've seen two trees the same height
-                    if int(self.forest[my_y + y_offset][my_x]) == this_height and y_offset > 1:
-                        this_view += 1
-                        print('two equal trees, marking both')
-                    print(f'cannnot see whats behind this tree, score down is {this_view}')
-                    # this tree is NOT in view, sum the score, and exit
-                    view_score *= this_view
-                    break
-            else:
-                # if we've exited the forest
-                print(f'we exited the forest, score down is {this_view}')
-                # sum all our scores and exit
-                view_score *= this_view
+            # first check if we've exited the forest
+            if my_y + y_offset >= self.rows:
+                # if we have, total the score and exit
+                print('(x)', end='')
+                view_score *= current_score
                 break
+            print(f'({self.forest[my_y + y_offset][my_x]})', end='')
+            # if the next tree is of equal height to this tree, score 1 and exit
+            if current_height == int(self.forest[my_y + y_offset][my_x]):
+                current_score += 1
+                y_offset += 1
+                continue
+            # if the next tree is shorter than this tree, exit without scoring ONLY if we are
+            # not at the origin
+            if current_height > int(self.forest[my_y + y_offset][my_x]):
+                # if we are at the origin, score this tree, mark height, and move to next
+                if y_offset == 1:
+                    current_score += 1
+                    current_height = int(self.forest[my_y + y_offset][my_x])
+                    y_offset += 1
+                    continue
+                # if we are away from origin, this view is blocked, do not score and exit
+                view_score *= current_score
+                break
+            # if the next tree is taller than this tree, score tree, mark height, and move to next
+            if current_height < int(self.forest[my_y + y_offset][my_x]):
+                current_score += 1
+                current_height = int(self.forest[my_y + y_offset][my_x])
+                y_offset += 1
+                continue
+        print(f' {current_score}')
+
+        # look right
+        current_score = 0
+        current_height = int(self.forest[my_y][my_x])
+        x_offset = 1
+        print('   right: ', end='')
+        while True:
+            # first check if we've exited the forest
+            if my_x + x_offset >= self.cols:
+                # if we have, total the score and exit
+                print('(x)', end='')
+                view_score *= current_score
+                break
+            print(f'({self.forest[my_y][my_x + x_offset]})', end='')
+            # if the next tree is of equal height to this tree, score 1 and exit
+            if current_height == int(self.forest[my_y][my_x + x_offset]):
+                current_score += 1
+                x_offset += 1
+                continue
+            # if the next tree is shorter than this tree, exit without scoring ONLY if we are
+            # not at the origin
+            if current_height > int(self.forest[my_y][my_x + x_offset]):
+                # if we are at the origin, score this tree, mark height, and move to next
+                if x_offset == 1:
+                    current_score += 1
+                    current_height = int(self.forest[my_y][my_x + x_offset])
+                    x_offset += 1
+                    continue
+                # if we are away from origin, this view is blocked, do not score and exit
+                view_score *= current_score
+                break
+            # if the next tree is taller than this tree, score tree, mark height, and move to next
+            if current_height < int(self.forest[my_y][my_x + x_offset]):
+                current_score += 1
+                current_height = int(self.forest[my_y][my_x + x_offset])
+                x_offset += 1
+                continue
+        print(f' {current_score}')
 
         # look left
-        this_view = 1
+        current_score = 0
+        current_height = int(self.forest[my_y][my_x])
         x_offset = -1
-        this_height = int(self.forest[my_y][my_x + x_offset])
-        print(f'left of us is {self.forest[my_y][my_x + x_offset]} at {this_height}m')
+        print('   left: ', end='')
         while True:
-            if my_x + x_offset >= 0:
-                # if there exists a tree to the left of the current one
-                print(f'looking at {self.forest[my_y][my_x + x_offset]} compared to {this_height}')
-                if int(self.forest[my_y][my_x + x_offset]) > this_height:
-                    # this tree is taller or equal than ours, so we can see it
-                    # increase the score
-                    this_view += 1
-                    # make this tree the new highest in view
-                    this_height = int(self.forest[my_y][my_x + x_offset])
-                    x_offset -= 1
-                else:
-                    # special case, we are in the distance and we've seen two trees the same height
-                    if int(self.forest[my_y][my_x + x_offset]) == this_height and x_offset < -1:
-                        this_view += 1
-                        print('two equal trees, marking both')
-                    print(f'cannnot see whats behind this tree, score left is {this_view}')
-                    # this tree is NOT in view, sum the score, and exit
-                    view_score *= this_view
-                    break
-            else:
-                # if we've exited the forest
-                print(f'we exited the forest, score left is {this_view}')
-                # sum all our scores and exit
-                view_score *= this_view
+            # first check if we've exited the forest
+            if my_x + x_offset < 0:
+                # if we have, total the score and exit
+                print('(x)', end='')
+                view_score *= current_score
                 break
+            print(f'({self.forest[my_y][my_x + x_offset]})', end='')
+            # if the next tree is of equal height to this tree, score 1 and exit
+            if current_height == int(self.forest[my_y][my_x + x_offset]):
+                current_score += 1
+                x_offset -= 1
+                continue
+            # if the next tree is shorter than this tree, exit without scoring ONLY if we are
+            # not at the origin
+            if current_height > int(self.forest[my_y][my_x + x_offset]):
+                # if we are at the origin, score this tree, mark height, and move to next
+                if x_offset == -1:
+                    current_score += 1
+                    current_height = int(self.forest[my_y][my_x + x_offset])
+                    x_offset -= 1
+                    continue
+                # if we are away from origin, this view is blocked, do not score and exit
+                view_score *= current_score
+                break
+            # if the next tree is taller than this tree, score tree, mark height, and move to next
+            if current_height < int(self.forest[my_y][my_x + x_offset]):
+                current_score += 1
+                current_height = int(self.forest[my_y][my_x + x_offset])
+                x_offset -= 1
+                continue
+        print(f' {current_score}')
 
-        print(f'************ tree score of {view_score}\n')
+
+        print(f'   total: {view_score}')
         return view_score
 
 def main():
-    raw_data = read_file('test')
+    raw_data = read_file('d08')
     print(raw_data)
     my_forest = Forest(raw_data)
-    my_forest.show()
+    # my_forest.show()
     my_forest.for_the_trees()
     my_forest = Forest(raw_data)
-    my_forest.show()
+    my_forest.show(False)
     tallest = -1
-    print(my_forest.get_tree_score(3, 2))
-"""
-    for y in range(my_forest.cols):
-        for x in range(my_forest.rows):
-            tallest = max(my_forest.get_tree_score(y, x), tallest)
-    print(f'Best treehouse score is {tallest}')
-"""
+    """for y in range(my_forest.rows):
+        for x in range(my_forest.cols):
+            mine = my_forest.get_tree_score(y, x)
+            if mine > tallest:
+                tallest = mine
+                print(f'\n\n\n{"*"*500}\nFOUND NEW TALLEST {tallest}\n****************\n\n\n')
+        print(f'{"#"*150}')
+        print(f'{"#" * 150}')
+        print(f'{"#" * 150}')
+    print(f'Best treehouse score is {tallest}')"""
 
 if __name__ == '__main__':
     print('running day 8')
