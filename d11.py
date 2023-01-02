@@ -105,6 +105,14 @@ def monkey_around(monkies):
 
 if __name__ == '__main__':
 
+
+    huge = Huge(59)
+    print(huge)
+    huge = Huge(60)
+    print(huge)
+    huge = Huge(65865198612)
+    print(huge)
+
     # test = gd(11)
     test = read_file('test')
 
@@ -112,10 +120,7 @@ if __name__ == '__main__':
 
     monkey_list = make_monkies(test)
 
-    huge = Huge(21469, 10)
-    other = Huge(11273, 10)
 
-    huge -= other
 
     interested = [1, 20, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
 

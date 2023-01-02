@@ -1,4 +1,5 @@
 import sys
+import math
 from aocd import get_data
 from os.path import exists
 
@@ -89,151 +90,97 @@ def get_aoc_data(my_day=1, my_year=2022, read_type='l'):
 
 class Huge():
 
-    def __init__(self, input_number=None, base=750):
-        self.__number = []
-        self.__base = base
+    def __init__(self, input_number=None):
+        self.factors = [1]
         if input_number:
-            self.set(input_number)
-        else:
-            self.__number = [0]
+            self.set(int(input_number))
+
+    def set(self, input_number):
+        # fill with factors list
+        # if the passed number is 1 or 2, just set it now
+        if input_number == 1:
+            return
+        if input_number == 2:
+            self.factors.append(input_number)
+            return
+        self.factor(input_number)
+
+    def primes(self, n):
+        """ Returns  a list of primes < n """
+        sieve = [True] * n
+        for i in range(3, int(n ** 0.5) + 1, 2):
+            if sieve[i]:
+                sieve[i * i::2 * i] = [False] * ((n - i * i - 1) // (2 * i) + 1)
+        return [2] + [i for i in range(3, n, 2) if sieve[i]]
+
+
+    def factor(self, input_number):
+        # this function works in place, altering the self.factors list
+
+        # generate the list of primes to input+1 to check against
+        check_list = self.primes(input_number+1)
+
+        # before anything else, check if the input IS prime, if so return it immediately
+        if input_number == check_list[-1]:
+            self.factors.append(input_number)
+            return
+
+        # loop across the factoring, until we are forced to put the input into the factor list
+        # we really only need to check the bottom half of the factors list
+        while True:
+            if check_list[-1] > int(input_number/2):
+                check_list.pop()
+            else:
+                break
+
+        i = 0
+        while input_number != 1:
+
+
+            # is the input itself the prime?
+            if input_number == check_list[-1]:
+                self.factors.append(input_number)
+                continue
+
+            # what item in the check list are we at?
+            is_factor = check_list[i]
+
+            # check if the current is a factor of input
+            if input_number % is_factor == 0:
+                # if so, append current to factor list
+                self.factors.append(is_factor)
+                # divide the input by the factor
+                input_number = int(input_number  / is_factor)
+                # return to the start of out check list for next factorization
+                i = 0
+                # break the 'prime number' check loop, return to top
+                continue
+
+            if i < len(check_list):
+                # if the number didn't factor, increase the check
+                i += 1
 
 
     def __str__(self):
-        my_string = f'base {self.__base}: '
-        for i in range(len(self.__number)-1, -1, -1):
-            my_string += f'{self.__number[i]}'
-        return my_string
-
-
-
-
-#### YOU NEED TO MAKE THE SET FUNCTION HANDLE LISTS ALA __ADD__ AND SUCH
-
-
-    def set(self, input_number):
-        input_number = int(input_number)
-        if input_number == 0:
-            self.__number = [0]
-        while input_number:
-            self.__number.append(int(input_number % self.__base))
-            input_number //= self.__base
+        return str(math.prod(self.factors))
 
 
     def __add__(self, other):
-        if type(other) != Huge:
-            other = Huge(other, self.__base)
-
-        my_total = [0]
-
-        for i in range(max(len(self.__number), len(other.__number))):
-            try:
-                my_total[i] += self.__number[i]
-            except IndexError:
-                pass
-            try:
-                my_total[i] += other.__number[i]
-            except IndexError:
-                pass
-
-            if my_total[i] >= self.__base:
-                carry = my_total[i] // self.__base
-                my_total[i] %= self.__base
-                my_total.append(carry)
-            else:
-                my_total.append(0)
-
-        if my_total[-1] == 0:
-            my_total.pop()
-
-        return Huge(my_total, self.__base)
-
+        return
     def __sub__(self, other):
-        if type(other) != Huge:
-            other = Huge(other, self.__base)
-
-        if self == other:
-            return [0]
-
-        if self > other:
-            remainder = self.__number
-            subtrahend = other.__number
-        else:
-            remainder = other.__number
-            subtrahend = self.__number
-
-        for i in range(len(remainder)):
-            if remainder[i] < subtrahend[i]:
-                remainder[i+1] -= 1
-                remainder[i] += self.__base
-            remainder[i] -= subtrahend[i]
-
-        return Huge(remainder, self.__base)
-
+        return
 
     def __mul__(self, other):
-        if type(other) != Huge:
-            other = Huge(other, self.__base)
-
-        my_product = [0]
-
-        if len(self.__number) >= len(other.__number):
-            for i in range(len(other.__number)):
-                for j in range(len(self.__number)):
-                    my_product[j+i] += other.__number[i] * self.__number[j]
-                    if my_product[j+i] >= self.__base:
-                        carry = my_product[j+i] // self.__base
-                        my_product[j+i] %= self.__base
-                        try:
-                            my_product[j+i+1] += carry
-                        except IndexError:
-                            my_product.append(carry)
-                    else:
-                        my_product.append(0)
-        else:
-            for i in range(len(self.__number)):
-                for j in range(len(other.__number)):
-                    my_product[j+i] += self.__number[i] * other.__number[j]
-                    if my_product[j+i] >= self.__base:
-                        carry = my_product[j+i] // self.__base
-                        my_product[j+i] %= self.__base
-                        try:
-                            my_product[j+i+1] += carry
-                        except IndexError:
-                            my_product.append(carry)
-                    else:
-                        my_product.append(0)
-
-        if my_product[-1] == 0:
-            my_product.pop()
-
-        return Huge(my_product, self.__base)
+        return
 
     def __eq__(self, other):
-        for i in range(max(len(self.__number), len(other.__number))):
-            try:
-                if self.__number[i] == other.__number[i]:
-                    continue
-                else:
-                    return False
-            except IndexError:
-                return False
-        return True
+        return
 
     def __lt__(self, other):
-        if len(other.__number) > len(self.__number):
-            return False
-
-        if self == other:
-            return False
-
-        for i in range(len(self.__number)-1, -1, -1):
-            if self.__number[i] < other.__number[i]:
-                return True
-            else:
-                return False
+        return
 
     def __gt__(self, other):
-        return other < self
+        return
 
     def __mod__(self, other):
         return
