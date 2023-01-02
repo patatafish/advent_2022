@@ -97,68 +97,103 @@ class Huge():
 
     def set(self, input_number):
         # fill with factors list
-        # if the passed number is 1 or 2, just set it now
-        if input_number == 1:
-            return
-        if input_number == 2:
-            self.factors.append(input_number)
-            return
         self.factor(input_number)
-
-    def primes(self, n):
-        """ Returns  a list of primes < n """
-        sieve = [True] * n
-        for i in range(3, int(n ** 0.5) + 1, 2):
-            if sieve[i]:
-                sieve[i * i::2 * i] = [False] * ((n - i * i - 1) // (2 * i) + 1)
-        return [2] + [i for i in range(3, n, 2) if sieve[i]]
-
 
     def factor(self, input_number):
         # this function works in place, altering the self.factors list
 
-        # generate the list of primes to input+1 to check against
-        check_list = self.primes(input_number+1)
-
-        # before anything else, check if the input IS prime, if so return it immediately
-        if input_number == check_list[-1]:
-            self.factors.append(input_number)
-            return
-
         # loop across the factoring, until we are forced to put the input into the factor list
-        # we really only need to check the bottom half of the factors list
         while True:
-            if check_list[-1] > int(input_number/2):
-                check_list.pop()
-            else:
+
+            # if the input is 1, we've fully factored the input_number
+            if input_number == 1:
                 break
 
-        i = 0
-        while input_number != 1:
+            # knock out a few quickies with tricks we can check easily
+            seven_check = False
+            # first check if the number is even
+            if str(input_number)[-1] in ['0', '2', '4', '6', '8']:
+                self.factors.append(2)
+                input_number = int(input_number / 2)
+                continue
+            # check for % 3 quickly
+            temp = input_number
+            while True:
+                # add all the individual digits of input number
+                temp = sum([int(i) for i in list(str(temp))])
+                # check if the number is a single digit or not
+                if len(str(temp)) > 1:
+                    # if it is, go back to the top
+                    continue
+                break
 
-
-            # is the input itself the prime?
-            if input_number == check_list[-1]:
-                self.factors.append(input_number)
+            # if we have a single digit, check for %3
+            if temp % 3 == 0:
+                self.factors.append(3)
+                input_number = int(input_number / 3)
                 continue
 
-            # what item in the check list are we at?
-            is_factor = check_list[i]
-
-            # check if the current is a factor of input
-            if input_number % is_factor == 0:
-                # if so, append current to factor list
-                self.factors.append(is_factor)
-                # divide the input by the factor
-                input_number = int(input_number  / is_factor)
-                # return to the start of out check list for next factorization
-                i = 0
-                # break the 'prime number' check loop, return to top
+            # check for % 5 quickly
+            if str(input_number)[-1] == '5':
+                self.factors.append(5)
+                input_number = int(input_number / 5)
                 continue
 
-            if i < len(check_list):
-                # if the number didn't factor, increase the check
-                i += 1
+            # check for % 7 quickly (only for 3 digits or higher)
+            seven_check = len(str(input_number)) > 3
+            temp = input_number
+            while True and seven_check:
+                # split the last digit off the input and double it
+                i = int(str(temp)[-1]) * 2
+                temp = int(str(temp)[:-1])
+                # subtract that from the left over input
+                temp -= i
+                # if we have more that 2 digits, repeat
+                if len(str(temp)) > 2:
+                    continue
+                break
+
+            if seven_check:
+                if temp % 7 == 0:
+                    self.factors.append(7)
+                    input_number = int(input_number / 7)
+                    continue
+
+            # check for % 11 quickly
+            temp = 0
+            sign = 1
+            for i in list(str(input_number)):
+                temp += (int(i) * sign)
+                sign *= -1
+            if temp % 11 == 0:
+                self.factors.append(11)
+                input_number = int(input_number / 11)
+                continue
+
+            # if not even, start checking odd numbers all the way to (input/2)+1
+            i = 13
+            while True:
+                # does the guess go evenly?
+                if input_number % i == 0:
+                    self.factors.append(i)
+                    input_number = int(input_number / i)
+                    # if we found a factor, break this 'odd' while loop, start from top
+                    break
+                # if it didn't factor, check the next odd number
+                i += 2
+
+                if str(i)[-3:] == '100':
+                    print(f'testing {i}')
+
+                # check to see if we've checked the whole set of possible
+                # factors, if so the input is prime and we should record it as
+                # it's own factor
+                if i > int(input_number/2) + 1:
+                    self.factors.append(input_number)
+                    # set the exit flag for outer loop
+                    input_number = 1
+                    break
+
 
 
     def __str__(self):
