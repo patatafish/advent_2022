@@ -91,7 +91,7 @@ class Huge():
 
     def __init__(self, input_number=None, base=750):
         self.__number = []
-        self.__base = base
+        self.__base = int(base)
         if input_number:
             self.set(input_number)
         else:
@@ -99,18 +99,30 @@ class Huge():
 
 
     def __str__(self):
-        my_string = f'base {self.__base}: '
+        return f'base {self.__base}: {int(self)}'
+
+
+    def __int__(self):
+        my_int = 0
         for i in range(len(self.__number)-1, -1, -1):
-            my_string += f'{self.__number[i]}'
-        return my_string
-
-
-
-
-#### YOU NEED TO MAKE THE SET FUNCTION HANDLE LISTS ALA __ADD__ AND SUCH
+            my_int += self.__number[i]*(self.__base**i)
+        return my_int
 
 
     def set(self, input_number):
+        # if we are attempting to set this Huge to another Huge:
+        if type(input_number) is Huge:
+            # just copy the data over, no conversion needed
+            self.__number = input_number.__number
+            self.__base = input_number.__base
+            return
+
+        # if we got passed a list we'll construt the new Huge and return it
+        if type(input_number) is list:
+            self.__number = input_number
+            return
+
+        # otherwise we are attempting to set this Huge to an int, it needs converting
         input_number = int(input_number)
         if input_number == 0:
             self.__number = [0]
@@ -118,7 +130,48 @@ class Huge():
             self.__number.append(int(input_number % self.__base))
             input_number //= self.__base
 
+    def divides(self, other):
+        # convert our self to the base of the other
 
+        # start by figuring out our largest place value needed in our new (lower) base
+        # lets make a place value list
+        ceiling = int(self)
+        place_value = [1]
+        while place_value[-1] < ceiling:
+            place_value.append(other*place_value[-1])
+
+        # now we have a list of the needed place values, lets start filling it in starting
+        # with the biggest value we need, moving down
+
+        # take off the last item, it's too big
+        place_value.pop()
+
+        """I THINK WE ARE CRASHING AT A CLEAN DIVIDE (NO REMAINDER) CHECK AND FIX"""
+        # start chunking off parts of our int (the ceiling) and converting to new base
+        new_base = []
+        while ceiling:
+            this_digit = 0
+            this_place_value = place_value.pop()
+            # if we are in the 'ones place' just tack it on
+            if ceiling < other:
+                this_digit = ceiling
+                ceiling = 0
+            # otherwise start subtracting (to avoid divide and float overflows)
+            while ceiling > this_place_value:
+                this_digit += 1
+                ceiling -= this_place_value
+            # we got how many of this digit, insert to new base at left side of list
+            new_base.insert(0, this_digit)
+
+
+        # if the 'ones' place is a 0, we divide evenly,
+        # otherwise there will be a remainder
+        if new_base[0] == 0:
+            return True
+        else:
+            return False
+
+    """YOU CAN SHORTEN THIS BY NOT CONVERTING TO HUGE TO ADD, JUST ADD THEN REGROUP IF NEEDED"""
     def __add__(self, other):
         if type(other) != Huge:
             other = Huge(other, self.__base)
@@ -168,7 +221,6 @@ class Huge():
             remainder[i] -= subtrahend[i]
 
         return Huge(remainder, self.__base)
-
 
     def __mul__(self, other):
         if type(other) != Huge:
@@ -234,6 +286,3 @@ class Huge():
 
     def __gt__(self, other):
         return other < self
-
-    def __mod__(self, other):
-        return

@@ -92,7 +92,7 @@ def monkey_around(monkies):
             # current = int(current / 3)
             # print(f'\t\t safe! you are {current} worried.')
 
-            if current % monkey.test == 0:
+            if current.divides(monkey.test):
                 # print(f'\t\t\t {current} is divisable by {monkey.test}')
                 # print(f'\t\t\t passing to monkey {monkey.true_act}')
                 monkies[monkey.true_act].my_items.append(current)
@@ -111,11 +111,6 @@ if __name__ == '__main__':
     print(test)
 
     monkey_list = make_monkies(test)
-
-    huge = Huge(21469, 10)
-    other = Huge(11273, 10)
-
-    huge -= other
 
     interested = [1, 20, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
 
