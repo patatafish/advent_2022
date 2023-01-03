@@ -91,6 +91,7 @@ def get_aoc_data(my_day=1, my_year=2022, read_type='l'):
 class Huge():
 
     def __init__(self, input_number=None):
+        self.int_value = int(input_number)
         self.factors = [1]
         if input_number:
             self.set(int(input_number))
@@ -99,8 +100,20 @@ class Huge():
         # fill with factors list
         self.factor(input_number)
 
-    def factor(self, input_number):
+    def factor(self, input_number=None):
         # this function works in place, altering the self.factors list
+
+        # if we are asking to factor the number we already are...
+        if (self.int_value == input_number) and (len(self.factors) > 1):
+            # then don't do the work, just return
+            return
+
+        # we are creating a new list of factors here, we should reset the current list
+        self.factors = [1]
+
+        # if we aren't passed a number to factor, use the current int value
+        if not input_number:
+            input_number = self.int_value
 
         # loop across the factoring, until we are forced to put the input into the factor list
         while True:
@@ -139,39 +152,11 @@ class Huge():
                 input_number = int(input_number / 5)
                 continue
 
-            # check for % 7 quickly (only for 3 digits or higher)
-            seven_check = len(str(input_number)) > 3
-            temp = input_number
-            while True and seven_check:
-                # split the last digit off the input and double it
-                i = int(str(temp)[-1]) * 2
-                temp = int(str(temp)[:-1])
-                # subtract that from the left over input
-                temp -= i
-                # if we have more that 2 digits, repeat
-                if len(str(temp)) > 2:
-                    continue
-                break
-
-            if seven_check:
-                if temp % 7 == 0:
-                    self.factors.append(7)
-                    input_number = int(input_number / 7)
-                    continue
-
-            # check for % 11 quickly
-            temp = 0
-            sign = 1
-            for i in list(str(input_number)):
-                temp += (int(i) * sign)
-                sign *= -1
-            if temp % 11 == 0:
-                self.factors.append(11)
-                input_number = int(input_number / 11)
-                continue
 
             # if not even, start checking odd numbers all the way to (input/2)+1
             i = 13
+            ceiling = math.sqrt(input_number) + 1
+
             while True:
                 # does the guess go evenly?
                 if input_number % i == 0:
@@ -182,40 +167,72 @@ class Huge():
                 # if it didn't factor, check the next odd number
                 i += 2
 
-                if str(i)[-3:] == '100':
-                    print(f'testing {i}')
-
                 # check to see if we've checked the whole set of possible
                 # factors, if so the input is prime and we should record it as
                 # it's own factor
-                if i > int(input_number/2) + 1:
+                if i > ceiling:
+                    print()
                     self.factors.append(input_number)
                     # set the exit flag for outer loop
                     input_number = 1
                     break
 
-
-
     def __str__(self):
-        return str(math.prod(self.factors))
-
+        return str(self.int_value)
 
     def __add__(self, other):
-        return
+        if type(other) is Huge:
+            self.int_value += other.int_value
+            self.factor()
+        else:
+            self.int_value += other
+            self.factor()
+
+        return self
+
     def __sub__(self, other):
-        return
+        if type(other) is Huge:
+            self.int_value -= other.int_value
+            self.factor()
+        else:
+            self.int_value -= other
+            self.factor()
+
+        return self
 
     def __mul__(self, other):
-        return
+        if type(other) is Huge:
+            self.int_value *= other.int_value
+            self.factors.extend(other.factors)
+            self.factors.sort()
+        else:
+            self.int_value *= other
+            other = Huge(other)
+            self.factors.extend(other.factors)
+            self.factors.sort()
+
+        return self
 
     def __eq__(self, other):
-        return
+        if type(other) is Huge:
+            return self.int_value == other.int_value
+        else:
+            return self.int_value == other
 
     def __lt__(self, other):
-        return
+        if type(other) is Huge:
+            return self.int_value < other.int_value
+        else:
+            return self.int_value < other
 
     def __gt__(self, other):
-        return
+        if type(other) is Huge:
+            return self.int_value > other.int_value
+        else:
+            return self.int_value > other
 
     def __mod__(self, other):
-        return
+        if type(other) is Huge:
+            return other.factors in self.factors
+        else:
+            return self.factor(other) in self.factors

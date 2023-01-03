@@ -105,14 +105,6 @@ def monkey_around(monkies):
 
 if __name__ == '__main__':
 
-
-    huge = Huge(59)
-    print(huge)
-    huge = Huge(60)
-    print(huge)
-    huge = Huge(65865198612)
-    print(huge)
-
     # test = gd(11)
     test = read_file('test')
 
